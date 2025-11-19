@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Swagger UI - Versioning Demo</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; }
+      #topbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 8px;
+        background: #fafafa;
+        border-bottom: 1px solid #eee;
+        gap: 10px;
+      }
+      #version-select { margin-right:16px; }
+      .container { height: calc(100vh - 50px); }
+    </style>
+  </head>
+  <body>
+    <div id="topbar">
+      <label for="version-select">Version:</label>
+      <select id="version-select">
+        <option value="/openapi-v1.json">v1</option>
+        <option value="/openapi-v2.json">v2</option>
+        <option value="/openapi-latest.json">latest</option>
+      </select>
+    </div>
+
+    <div id="swagger-ui" class="container"></div>
+
+    <!-- Swagger UI scripts -->
+    <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+    <script>
+      const select = document.getElementById('version-select');
+
+      // Get initial spec from query param or default dropdown
+      const params = new URLSearchParams(window.location.search);
+      const specParam = params.get('spec');
+      const initialSpec = specParam || select.value;
+      select.value = initialSpec;
+
+      // Initialize Swagger UI
+      const ui = SwaggerUIBundle({
+        url: initialSpec,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: "StandaloneLayout"
+      });
+
+      // Dropdown changes
+      select.addEventListener('change', (e) => {
+        const newSpec = e.target.value;
+
+        // Properly reload new spec
+        ui.specActions.updateUrl(newSpec);
+        ui.specActions.download();
+
+        // Update URL for shareable links
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('spec', newSpec);
+        history.replaceState({}, '', newUrl);
+      });
+    </script>
+  </body>
+</html>

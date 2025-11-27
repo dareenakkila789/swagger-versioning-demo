@@ -7,52 +7,10 @@
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
     <style>
       body { margin: 0; font-family: Arial, sans-serif; }
-      #topbar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 8px;
-        background: #fafafa;
-        border-bottom: 1px solid #eee;
-        gap: 10px;
-      }
-      #version-select { margin-right:16px; }
-      .container { height: calc(100vh - 50px); }
-      #version-floating {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: white;
-  padding: 10px 14px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  z-index: 9999;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-#version-floating select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #fafafa;
-  font-size: 14px;
-}
-
+      .container { height: 100vh; }
     </style>
   </head>
   <body>
-    <div id="version-floating">
-  <label>Version:</label>
-  <select id="version-select">
-    <option value="/openapi-v1.json">v1</option>
-    <option value="/openapi-v2.json">v2</option>
-    <option value="/openapi-latest.json">latest</option>
-  </select>
-</div>
-
 
     <div id="swagger-ui" class="container"></div>
 
@@ -60,39 +18,35 @@
     <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
     <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
     <script>
-      const select = document.getElementById('version-select');
+      window.onload = async function() {
+        try {
+          // Fetch the list of OpenAPI files from the server
+          const response = await fetch('/versions');
+          const versions = await response.json();
 
-      // Get initial spec from query param or default dropdown
-      const params = new URLSearchParams(window.location.search);
-      const specParam = params.get('spec');
-      const initialSpec = specParam || select.value;
-      select.value = initialSpec;
+          if (!versions || versions.length === 0) {
+            document.getElementById('swagger-ui').innerHTML = "<p>No OpenAPI files found.</p>";
+            return;
+          }
 
-      // Initialize Swagger UI
-      const ui = SwaggerUIBundle({
-        url: initialSpec,
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIStandalonePreset
-        ],
-        layout: "BaseLayout"
-      });
+          // Initialize Swagger UI with automatic version dropdown
+          const ui = SwaggerUIBundle({
+            urls: versions,                   // dynamic list of specs
+            "urls.primaryName": versions[0].name, // default selected spec
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIStandalonePreset
+            ],
+            layout: "StandaloneLayout"
+          });
 
-      // Dropdown changes
-      select.addEventListener('change', (e) => {
-        const newSpec = e.target.value;
-
-        // Properly reload new spec
-        ui.specActions.updateUrl(newSpec);
-        ui.specActions.download();
-
-        // Update URL for shareable links
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('spec', newSpec);
-        history.replaceState({}, '', newUrl);
-      });
+        } catch (err) {
+          console.error("Failed to load OpenAPI versions:", err);
+          document.getElementById('swagger-ui').innerHTML = "<p>Error loading OpenAPI versions.</p>";
+        }
+      };
     </script>
   </body>
 </html>
